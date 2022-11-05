@@ -1,44 +1,105 @@
-import { Avatar } from '../Avatar'
-import { Comment } from '../Comment'
+import { useState } from 'react'
+import { format, formatDistanceToNow } from 'date-fns'
+import ptBR from 'date-fns/locale/pt-BR'
+
 import './styles.css'
 
-export function Post() {
+import { Avatar } from '../Avatar'
+import { Comment } from '../Comment'
+
+interface IPost {
+  author: {
+    avatarUrl: string;
+    name: string;
+    role: string;
+  }
+  content: IPostContent[];
+  date: Date;
+}
+
+interface IPostContent {
+  type: string;
+  content: string;
+}
+
+interface IComment {
+  content: string;
+}
+
+export function Post({ author, date, content }: IPost) {
+  const [comments, setComments] = useState<IComment[]>([])
+  const [commentText, setCommentText] = useState('')
+
+  const formattedDate = format(date, "d 'de' LLLL 'às' HH:mm'h'", {
+    locale: ptBR,
+  })
+
+  const handleComment = () => {
+    event!.preventDefault()
+
+    setComments([...comments, { content: commentText }])
+    setCommentText('')
+  }
+
+  const handleDeleteComment = (comment: any) => {
+    const commentsWithoutDeleted = comments.filter(element => element.content !== comment)
+
+    setComments(commentsWithoutDeleted)
+  }
+
   return (
     <article className='post'>
       <header>
         <div className='author'>
-          <Avatar src="https://avatars.githubusercontent.com/u/102631946?v=4" />
+          <Avatar src={author.avatarUrl} />
           <div className='authorInfo'>
-            <strong>Bruno Carvalho</strong>
-            <span>Frontend Developer</span>
+            <strong>{author.name}</strong>
+            <span>{author.role}</span>
           </div>
         </div>
-        <time 
-          dateTime='2022-11-03 22:37:30'
-          title='03 de novembro às 22:37'
+        <time
+          dateTime={date.toISOString()}
+          title={formattedDate}
         >
-          Publicado há 1hr
+          {
+            formatDistanceToNow(date, {
+              locale: ptBR,
+              addSuffix: true,
+            })
+          }
         </time>
       </header>
       <div className='content'>
-        <p>
-          <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. </p>
-          <p>Quisquam provident, praesentium laborum, eveniet repudiandae magni quidem esse error vero dicta molestias. </p>
-          <p>Magni, nemo animi. Perspiciatis quasi non accusantium magnam vitae.</p>
-        </p>
+        {
+          content.map(line => {
+            switch (line.type) {
+              case 'paragraph':
+                return <p key={line.content}>{line.content}</p>
+              case 'link':
+                return <p key={line.content}><a href="#">{line.content}</a></p>
+              default:
+                break;
+            }
+          })
+        }
       </div>
-      <form className='comments'>
+      <form className='comments' onSubmit={handleComment}>
         <strong>Deixe seu feedback</strong>
-        <textarea placeholder='Deixe um comentário' />
+        <textarea 
+          placeholder='Deixe um comentário'
+          name='comment' 
+          onChange={event => setCommentText(event.target.value)}
+          value={commentText}
+          required
+        />
         <footer>
           <button type="submit">Publicar</button>
         </footer>
       </form>
-
       <div className='commentList'>
-        <Comment />
-        <Comment />
-        <Comment />
+        {
+          comments.map(comment => <Comment content={comment.content} key={comment.content} deleteComment={handleDeleteComment} />)
+        }
       </div>
     </article>
   )
